@@ -2,6 +2,7 @@ import cv2
 import csv
 import requests
 import numpy as np
+import tensorflow as tf
 from doctr.models import ocr_predictor
 from io import BytesIO
 
@@ -23,7 +24,7 @@ def download_image(image_url):
         print(f"Error downloading image: {e}")
         return None
 
-# Function to detect and correct rotation for various orientations
+# Function to correct image rotation using TensorFlow
 def correct_rotation(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
@@ -49,10 +50,11 @@ def correct_rotation(image):
             if median_angle < -45:
                 median_angle += 90
             
-            # Rotate the image to correct the orientation
-            center = (image.shape[1] // 2, image.shape[0] // 2)
-            matrix = cv2.getRotationMatrix2D(center, median_angle, 1.0)
-            rotated = cv2.warpAffine(image, matrix, (image.shape[1], image.shape[0]), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+            # Rotate the image to correct the orientation using TensorFlow
+            image_tensor = tf.convert_to_tensor(image, dtype=tf.float32)
+            angle_rad = tf.constant(median_angle * (np.pi / 180), dtype=tf.float32)
+            rotated = tf.image.rot90(image_tensor, k=int(angle_rad))
+            rotated = rotated.numpy().astype(np.uint8)
             return rotated
     return image
 
@@ -77,13 +79,8 @@ def extract_text_from_image(image):
 
 # Function to handle images with mixed orientations
 def extract_text_from_mixed_orientations(image):
-    # Split the image into multiple orientations if needed (e.g., horizontal and vertical)
-    # This is a placeholder function: modify according to specific requirements
-    
-    # Extract text from the image as a fallback
+    # Placeholder for additional orientation processing
     text = extract_text_from_image(image)
-    
-    # Additional processing to handle mixed orientations can be added here
     return text
 
 # Read the CSV file and process each image link
